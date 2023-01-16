@@ -625,7 +625,7 @@ bool trans_xa_commit(THD *thd)
         DBUG_RETURN(true);
       }
       DBUG_ASSERT(!xid_state.xid_cache_element);
-
+#if 1
       if (thd->wait_for_prior_commit())
       {
         DBUG_ASSERT(thd->is_error());
@@ -633,9 +633,21 @@ bool trans_xa_commit(THD *thd)
         xs->acquired_to_recovered();
         DBUG_RETURN(true);
       }
-
+#endif
       xid_state.xid_cache_element= xs;
-      ha_commit_or_rollback_by_xid(thd->lex->xid, !res);
+#ifdef WITH_WSREP
+      if (WSREP(thd))
+      {
+        if (wsrep_ha_commit_or_rollback_by_xid(thd, !res))
+          DBUG_RETURN(TRUE);
+      }
+      else
+#endif /* WITH_WSREP */
+      if (ha_commit_or_rollback_by_xid(thd->lex->xid, !res) > 0)
+      {
+        // thd->wait_for_prior_commit() error
+        // ...
+      }
       xid_state.xid_cache_element= 0;
 
       res= res || thd->is_error();
