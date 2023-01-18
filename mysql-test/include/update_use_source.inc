@@ -131,7 +131,7 @@ insert into t1 select * from tmp;
 --echo #
 
 --error 1644
-update t1 set c1=2 where c3 in (select distinct a.c3 from t1 a where a.c1=t1.c1) order by t1.c2;
+update t1 set c1=2 where c3 in (select distinct a.c3 from t1 a where a.c1=t1.c1) order by t1.c2, t1.c1;
 --sorted_result
 select c1,c2,c3 from t1;
 truncate table t1;
@@ -192,6 +192,9 @@ update t1
 select * from t1 ;
 drop table t1;
 
+let $engine = `select @@default_storage_engine`;
+if ($engine != 'MEMORY'){
+
 --echo #
 --echo # Test on dynamic columns (blob)
 --echo #
@@ -236,3 +239,5 @@ update ft2 set copy = (select max(concat('mykeyword ',substr(b.copy,1,5))) from 
  where MATCH(copy) AGAINST('keys');
 SELECT * FROM ft2 WHERE MATCH(copy) AGAINST('mykeyword');
 drop table ft2;
+
+}

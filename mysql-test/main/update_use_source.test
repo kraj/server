@@ -13,6 +13,9 @@ set default_storage_engine=Aria;
 set default_storage_engine=MyISAM;
 --source include/update_use_source.inc
 
+set default_storage_engine=MEMORY;
+--source include/update_use_source.inc
+
 set @@default_storage_engine= @save_default_engine;
 
 --echo #

@@ -19,7 +19,12 @@ let $c = c1 <2 and exists (select 'X' from t1 a where a.c1 = t1.c2);
 eval create table tmp as select * from t1 where $c;
 let $q = delete from t1 where $c;
 eval explain $q;
-eval analyze $q;
+if ($engine != 'MEMORY'){
+  eval analyze $q;
+}
+if ($engine == 'MEMORY'){
+  eval $q;
+}
 --sorted_result
 select * from t1;
 insert into t1(c1,c2,c3) select c1,c2,c3 from tmp;
@@ -46,7 +51,12 @@ let $c = exists (select 'X' from t1 a where a.c2 = t1.c2) and c2 >= 3 order by c
 eval create table tmp as select * from t1 where $c;
 let $q = delete from t1 where $c;
 eval explain $q;
-eval analyze $q;
+if ($engine != 'MEMORY'){
+  eval analyze $q;
+}
+if ($engine == 'MEMORY'){
+  eval $q;
+}
 --sorted_result
 select * from t1;
 insert into t1(c1,c2,c3) select c1,c2,c3 from tmp;
@@ -73,7 +83,12 @@ let $c = c1 in (select a.c2 from t1 a where a.c2 = t1.c3) limit 1;
 eval create table tmp as select * from t1 where $c;
 let $q = delete from t1 where $c;
 eval explain $q;
-eval analyze $q;
+if ($engine != 'MEMORY'){
+  eval analyze $q;
+}
+if ($engine == 'MEMORY'){
+  eval $q;
+}
 --sorted_result
 select * from t1;
 insert into t1(c1,c2,c3) select c1,c2,c3 from tmp;
@@ -205,7 +220,12 @@ let $c = t1.c2 in ( select max(a.c2) from v1 a where a.c1 = t1.c1);
 eval create table tmp as select * from t1 where $c;
 let $q = delete from t1 where $c;
 eval explain $q;
-eval analyze $q;
+if ($engine != 'MEMORY'){
+  eval analyze $q;
+}
+if ($engine == 'MEMORY'){
+  eval $q;
+}
 --sorted_result
 select * from t1;
 insert into t1(c1,c2,c3) select c1,c2,c3 from tmp;
@@ -233,7 +253,12 @@ let $c = v1.c2 in (select max(a.c2)from t1 a where a.c3 = v1.c3) and c1 < 10 and
 eval create table tmp as select * from v1 where $c;
 let $q = delete from v1 where $c;
 eval explain $q;
-eval analyze $q;
+if ($engine != 'MEMORY'){
+  eval analyze $q;
+}
+if ($engine == 'MEMORY'){
+  eval $q;
+}
 --sorted_result
 select * from t1;
 insert into t1(c1,c2,c3) select c1,c2,c3 from tmp;

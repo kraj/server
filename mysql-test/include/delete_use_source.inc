@@ -1,3 +1,5 @@
+let $engine = `select @@default_storage_engine`;
+
 create table t1 (c1 integer, c2 integer, c3 integer);
 
 insert into t1(c1,c2,c3) values (1,1,1);
@@ -58,6 +60,8 @@ alter table t1 add primary key (c3);
 drop table t1;
 
 
+if ($engine != 'MEMORY'){
+
 --echo #
 --echo # Test on dynamic columns (blob)
 --echo #
@@ -101,4 +105,4 @@ SELECT * FROM ft2 WHERE MATCH(copy) AGAINST('database');
 DELETE FROM ft2 WHERE  MATCH(copy) AGAINST('database');
 SELECT * FROM ft2 WHERE MATCH(copy) AGAINST('database');
 drop table ft2;
-
+}
