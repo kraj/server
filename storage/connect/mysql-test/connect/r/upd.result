@@ -1627,3 +1627,143 @@ serialno	name	sex	title	manager	department	secretary	salary
 DROP PROCEDURE test.tst_up;
 DROP TABLE employee;
 SET sql_mode = DEFAULT;
+#
+# End of 10.10 tests
+#
+SET sql_mode = 'NO_ENGINE_SUBSTITUTION';
+CREATE TABLE t1
+(
+name char(12) not null,
+city char(11) not null,
+birth date not null date_format='DD/MM/YYYY',
+hired date not null date_format='DD/MM/YYYY' flag=36
+) ENGINE=CONNECT TABLE_TYPE=FIX FILE_NAME='boys.txt' ENDING=1;
+SELECT * FROM t1;
+name	city	birth	hired
+John	Boston	1986-01-24	2010-06-02
+Henry	Boston	1987-06-07	2008-04-01
+George	San Jose	1981-08-10	2010-06-02
+Sam	Chicago	1979-11-21	2007-10-10
+James	Dallas	1992-05-13	2009-12-13
+Bill	Boston	1986-09-11	2008-02-09
+CREATE TABLE t2 (
+_id INT(2) NOT NULL,
+name_first CHAR(9) NOT NULL JPATH='$.name.first',
+name_aka CHAR(4) DEFAULT NULL JPATH='$.name.aka',
+name_last CHAR(10) NOT NULL JPATH='$.name.last',
+title CHAR(12) DEFAULT NULL,
+birth CHAR(20) DEFAULT NULL,
+death CHAR(20) DEFAULT NULL,
+contribs CHAR(50) NOT NULL JPATH='$.contribs',
+awards_award CHAR(42) DEFAULT NULL JPATH='$.awards.award',
+awards_year CHAR(4) DEFAULT NULL JPATH='$.awards.year',
+awards_by CHAR(38) DEFAULT NULL JPATH='$.awards.by'
+) ENGINE=CONNECT TABLE_TYPE=JSON FILE_NAME='bios.json';
+SELECT * FROM t2;
+_id	name_first	name_aka	name_last	title	birth	death	contribs	awards_award	awards_year	awards_by
+1	John	NULL	Backus	NULL	1924-12-03T05:00:00Z	2007-03-17T04:00:00Z	Fortran, ALGOL, Backus-Naur Form, FP	W.W. McDowell Award	1967	IEEE Computer Society
+2	John	NULL	McCarthy	NULL	1927-09-04T04:00:00Z	2011-12-24T05:00:00Z	Lisp, Artificial Intelligence, ALGOL	Turing Award	1971	ACM
+3	Grace	NULL	Hopper	Rear Admiral	1906-12-09T05:00:00Z	1992-01-01T05:00:00Z	UNIVAC, compiler, FLOW-MATIC, COBOL	Computer Sciences Man of the Year	1969	Data Processing Management Association
+4	Kristen	NULL	Nygaard	NULL	1926-08-27T04:00:00Z	2002-08-10T04:00:00Z	OOP, Simula	Rosing Prize	1999	Norwegian Data Association
+5	Ole-Johan	NULL	Dahl	NULL	1931-10-12T04:00:00Z	2002-06-29T04:00:00Z	OOP, Simula	Rosing Prize	1999	Norwegian Data Association
+6	Guido	NULL	van Rossum	NULL	1956-01-31T05:00:00Z	NULL	Python	Award for the Advancement of Free Software	2001	Free Software Foundation
+7	Dennis	NULL	Ritchie	NULL	1941-09-09T04:00:00Z	2011-10-12T04:00:00Z	UNIX, C	Turing Award	1983	ACM
+8	Yukihiro	Matz	Matsumoto	NULL	1965-04-14T04:00:00Z	NULL	Ruby	Award for the Advancement of Free Software	2011	Free Software Foundation
+9	James	NULL	Gosling	NULL	1955-05-19T04:00:00Z	NULL	Java	The Economist Innovation Award	2002	The Economist
+10	Martin	NULL	Odersky	NULL	NULL	NULL	Scala	NULL	NULL	NULL
+# Multi-update 
+select t1.name, t2.name_last, t2.name_aka, t1.city from t1, t2 where t1.name=t2.name_first;
+name	name_last	name_aka	city
+John	Backus	NULL	Boston
+John	McCarthy	NULL	Boston
+James	Gosling	NULL	Dallas
+explain update t1, t2
+set t1.city='Washington',  t2.name_aka='von' where t1.name=t2.name_first;
+id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
+1	SIMPLE	t1	ALL	NULL	NULL	NULL	NULL	6	
+1	SIMPLE	t2	ALL	NULL	NULL	NULL	NULL	10	Using where
+update t1, t2
+set t1.city='Washington',  t2.name_aka='von' where t1.name=t2.name_first;
+select t1.name, t2.name_last, t2.name_aka, t1.city from t1, t2 where t1.name=t2.name_first;
+name	name_last	name_aka	city
+John	Backus	von	Washington
+John	McCarthy	von	Washington
+James	Gosling	von	Washington
+select * from t1;
+name	city	birth	hired
+John	Washington	1986-01-24	2010-06-02
+Henry	Boston	1987-06-07	2008-04-01
+George	San Jose	1981-08-10	2010-06-02
+Sam	Chicago	1979-11-21	2007-10-10
+James	Washington	1992-05-13	2009-12-13
+Bill	Boston	1986-09-11	2008-02-09
+explain update t1
+set t1.city='New York' where t1.city like "Boston" and t1.name not in (
+select t2.name_first from t2);
+id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
+1	PRIMARY	t1	ALL	NULL	NULL	NULL	NULL	6	Using where
+2	DEPENDENT SUBQUERY	t2	ALL	NULL	NULL	NULL	NULL	10	Using where
+update t1
+set t1.city='New York' where t1.city like "Boston" and t1.name not in (
+select t2.name_first from t2);
+select * from t1;
+name	city	birth	hired
+John	Washington	1986-01-24	2010-06-02
+Henry	New York	1987-06-07	2008-04-01
+George	San Jose	1981-08-10	2010-06-02
+Sam	Chicago	1979-11-21	2007-10-10
+James	Washington	1992-05-13	2009-12-13
+Bill	New York	1986-09-11	2008-02-09
+# Multi-delete 
+explain delete from t1 where t1.city like "Boston" and t1.name not in (
+select t2.name_first from t2);
+id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
+1	PRIMARY	t1	ALL	NULL	NULL	NULL	NULL	6	Using where
+2	DEPENDENT SUBQUERY	t2	ALL	NULL	NULL	NULL	NULL	10	Using where
+delete from t1 where t1.city like "Boston" and t1.name not in (
+select t2.name_first from t2);
+select * from t1;
+name	city	birth	hired
+John	Washington	1986-01-24	2010-06-02
+Henry	New York	1987-06-07	2008-04-01
+George	San Jose	1981-08-10	2010-06-02
+Sam	Chicago	1979-11-21	2007-10-10
+James	Washington	1992-05-13	2009-12-13
+Bill	New York	1986-09-11	2008-02-09
+select * from t2;
+_id	name_first	name_aka	name_last	title	birth	death	contribs	awards_award	awards_year	awards_by
+1	John	von	Backus	NULL	1924-12-03T05:00:00Z	2007-03-17T04:00:00Z	Fortran, ALGOL, Backus-Naur Form, FP	W.W. McDowell Award	1967	IEEE Computer Society
+2	John	von	McCarthy	NULL	1927-09-04T04:00:00Z	2011-12-24T05:00:00Z	Lisp, Artificial Intelligence, ALGOL	Turing Award	1971	ACM
+3	Grace	NULL	Hopper	Rear Admiral	1906-12-09T05:00:00Z	1992-01-01T05:00:00Z	UNIVAC, compiler, FLOW-MATIC, COBOL	Computer Sciences Man of the Year	1969	Data Processing Management Association
+4	Kristen	NULL	Nygaard	NULL	1926-08-27T04:00:00Z	2002-08-10T04:00:00Z	OOP, Simula	Rosing Prize	1999	Norwegian Data Association
+5	Ole-Johan	NULL	Dahl	NULL	1931-10-12T04:00:00Z	2002-06-29T04:00:00Z	OOP, Simula	Rosing Prize	1999	Norwegian Data Association
+6	Guido	NULL	van Rossum	NULL	1956-01-31T05:00:00Z	NULL	Python	Award for the Advancement of Free Software	2001	Free Software Foundation
+7	Dennis	NULL	Ritchie	NULL	1941-09-09T04:00:00Z	2011-10-12T04:00:00Z	UNIX, C	Turing Award	1983	ACM
+8	Yukihiro	Matz	Matsumoto	NULL	1965-04-14T04:00:00Z	NULL	Ruby	Award for the Advancement of Free Software	2011	Free Software Foundation
+9	James	von	Gosling	NULL	1955-05-19T04:00:00Z	NULL	Java	The Economist Innovation Award	2002	The Economist
+10	Martin	NULL	Odersky	NULL	NULL	NULL	Scala	NULL	NULL	NULL
+explain delete t1.*, t2.*  from t1, t2 where t1.name=t2.name_first;
+id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
+1	SIMPLE	t1	ALL	NULL	NULL	NULL	NULL	6	
+1	SIMPLE	t2	ALL	NULL	NULL	NULL	NULL	10	Using where
+delete t1.*, t2.*  from t1, t2 where t1.name=t2.name_first;
+select * from t1;
+name	city	birth	hired
+Henry	New York	1987-06-07	2008-04-01
+George	San Jose	1981-08-10	2010-06-02
+Sam	Chicago	1979-11-21	2007-10-10
+Bill	New York	1986-09-11	2008-02-09
+select * from t2;
+_id	name_first	name_aka	name_last	title	birth	death	contribs	awards_award	awards_year	awards_by
+3	Grace	NULL	Hopper	Rear Admiral	1906-12-09T05:00:00Z	1992-01-01T05:00:00Z	UNIVAC, compiler, FLOW-MATIC, COBOL	Computer Sciences Man of the Year	1969	Data Processing Management Association
+4	Kristen	NULL	Nygaard	NULL	1926-08-27T04:00:00Z	2002-08-10T04:00:00Z	OOP, Simula	Rosing Prize	1999	Norwegian Data Association
+5	Ole-Johan	NULL	Dahl	NULL	1931-10-12T04:00:00Z	2002-06-29T04:00:00Z	OOP, Simula	Rosing Prize	1999	Norwegian Data Association
+6	Guido	NULL	van Rossum	NULL	1956-01-31T05:00:00Z	NULL	Python	Award for the Advancement of Free Software	2001	Free Software Foundation
+7	Dennis	NULL	Ritchie	NULL	1941-09-09T04:00:00Z	2011-10-12T04:00:00Z	UNIX, C	Turing Award	1983	ACM
+8	Yukihiro	Matz	Matsumoto	NULL	1965-04-14T04:00:00Z	NULL	Ruby	Award for the Advancement of Free Software	2011	Free Software Foundation
+10	Martin	NULL	Odersky	NULL	NULL	NULL	Scala	NULL	NULL	NULL
+drop tables t1, t2;
+SET sql_mode = DEFAULT;
+#
+# End of 11.0 tests
+#
