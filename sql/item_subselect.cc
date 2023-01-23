@@ -362,6 +362,8 @@ bool Item_subselect::enumerate_field_refs_processor(void *arg)
 bool Item_subselect::mark_as_eliminated_processor(void *arg)
 {
   eliminated= TRUE;
+  if (!null_value)
+    forced_const= TRUE;
   return FALSE;
 }
 
@@ -382,6 +384,8 @@ bool Item_subselect::eliminate_subselect_processor(void *arg)
   if (!unit->is_excluded())
     unit->exclude();
   eliminated= TRUE;
+  if (!null_value)
+    forced_const= TRUE;
   return FALSE;
 }
 
@@ -660,6 +664,8 @@ int walk_items_for_table_list(Item_processor processor,
 bool Item_subselect::walk(Item_processor processor, bool walk_subquery,
                           void *argument)
 {
+  if (eliminated)
+    return 0;
   if (!(unit->uncacheable & ~UNCACHEABLE_DEPENDENT) && engine->is_executed() &&
       !unit->describe)
   {
@@ -1329,12 +1335,12 @@ void Item_singlerow_subselect::bring_value()
 {
   if (!exec() && assigned())
   {
-    null_value= true;
+    null_value= TRUE;
     for (uint i= 0; i < max_columns ; i++)
     {
       if (!row[i]->null_value)
       {
-        null_value= false;
+        null_value= FALSE;
         return;
       }
     }
@@ -1348,6 +1354,15 @@ double Item_singlerow_subselect::val_real()
   DBUG_ASSERT(fixed == 1);
   if (forced_const)
     return value->val_real();
+  else
+  {
+    if (eliminated)
+    {
+      null_value= TRUE;
+      return 0;
+    }
+  }
+
   if (!exec() && !value->null_value)
   {
     null_value= FALSE;
@@ -1369,6 +1384,15 @@ longlong Item_singlerow_subselect::val_int()
     null_value= value->null_value;
     return val;
   }
+  else
+  {
+    if (eliminated)
+    {
+      null_value= TRUE;
+      return 0;
+    }
+  }
+
   if (!exec() && !value->null_value)
   {
     null_value= FALSE;
@@ -1391,6 +1415,15 @@ String *Item_singlerow_subselect::val_str(String *str)
     null_value= value->null_value;
     return res;
   }
+  else
+  {
+    if (eliminated)
+    {
+      null_value= TRUE;
+      return 0;
+    }
+  }
+
   if (!exec() && !value->null_value)
   {
     null_value= FALSE;
@@ -1413,7 +1446,16 @@ my_decimal *Item_singlerow_subselect::val_decimal(my_decimal *decimal_value)
     my_decimal *val= value->val_decimal(decimal_value);
     null_value= value->null_value;
     return val;
+  } 
+  else
+  {
+    if (eliminated)
+    {
+      null_value= TRUE;
+      return 0;
+    }
   }
+
   if (!exec() && !value->null_value)
   {
     null_value= FALSE;
@@ -1437,6 +1479,15 @@ bool Item_singlerow_subselect::val_bool()
     null_value= value->null_value;
     return val;
   }
+  else
+  {
+    if (eliminated)
+    {
+      null_value= TRUE;
+      return 0;
+    }
+  }
+
   if (!exec() && !value->null_value)
   {
     null_value= FALSE;
@@ -1460,6 +1511,15 @@ bool Item_singlerow_subselect::get_date(MYSQL_TIME *ltime,ulonglong fuzzydate)
     null_value= value->null_value;
     return val;
   }
+  else
+  {
+    if (eliminated)
+    {
+      null_value= TRUE;
+      return 0;
+    }
+  }
+
   if (!exec() && !value->null_value)
   {
     null_value= FALSE;
