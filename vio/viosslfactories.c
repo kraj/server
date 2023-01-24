@@ -294,6 +294,14 @@ new_VioSSLFd(const char *key_file, const char *cert_file,
   SSL_CTX_set_options(ssl_fd->ssl_context, ssl_ctx_options);
 
   /*
+    Correction for a new behaviour was introduced in OpenSSL 1.1.1e,
+    when a peer does not send close_notify before closing the connection:
+  */
+#ifdef SSL_OP_IGNORE_UNEXPECTED_EOF
+  SSL_CTX_set_options(ssl_fd->ssl_context, SSL_OP_IGNORE_UNEXPECTED_EOF);
+#endif
+
+  /*
     Set the ciphers that can be used
     NOTE: SSL_CTX_set_cipher_list will return 0 if
     none of the provided ciphers could be selected
