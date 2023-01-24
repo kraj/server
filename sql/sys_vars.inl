@@ -1250,7 +1250,7 @@ public:
           on_update_function on_update_func=0,
           const char *substitute=0)
     :Sys_var_double(name_arg, comment, flag_args, off, size, getopt,
-                   min_val, max_val, def_val, lock,
+                   min_val, max_val, def_val * arg_cost_adjust, lock,
                    binlog_status_arg,
                    on_check_func,
                    on_update_func,
